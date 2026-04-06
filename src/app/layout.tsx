@@ -24,22 +24,40 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: 'AKASHA AI — Tous les outils IA. Un seul abonnement.',
-  description: '47+ outils IA premium reunis en une seule plateforme. Cree, automatise, code et genere — sans jamais changer d\'app. Des 7EUR/mois.',
+  description: '47+ outils IA premium reunis en une seule plateforme. Cree, automatise, code et genere — sans jamais changer d\'app. Des 7€/mois.',
   metadataBase: new URL('https://akasha.purama.dev'),
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/icon.svg',
+    apple: '/icon.svg',
+    shortcut: '/favicon.svg',
+  },
   openGraph: {
     title: 'AKASHA AI — 47+ outils IA en un',
-    description: 'Le premier ecosysteme IA tout-en-un au monde.',
+    description: 'Le premier ecosysteme IA tout-en-un au monde. 47+ outils pour creer, automatiser et coder.',
     url: 'https://akasha.purama.dev',
     siteName: 'AKASHA AI',
     locale: 'fr_FR',
     type: 'website',
+    images: [
+      {
+        url: '/api/og',
+        width: 1200,
+        height: 630,
+        alt: 'AKASHA AI — 47+ outils IA en un abonnement',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AKASHA AI',
-    description: '47+ outils IA. 1 abonnement. Des 7EUR/mois.',
+    title: 'AKASHA AI — 47+ outils IA. 1 abonnement.',
+    description: '47+ outils IA. 1 abonnement. Des 7€/mois.',
+    images: ['/api/og'],
   },
   robots: { index: true, follow: true },
+  alternates: {
+    canonical: 'https://akasha.purama.dev',
+  },
 }
 
 export const viewport: Viewport = {
