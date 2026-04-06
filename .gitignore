@@ -1,0 +1,10 @@
+node_modules
+.next
+.env*
+CLAUDE.md
+.vercel
+*.log
+task_plan.md
+findings.md
+progress.md
+.DS_Store
