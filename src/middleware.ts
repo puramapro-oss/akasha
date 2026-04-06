@@ -13,7 +13,9 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith('/api/')) return true
   if (pathname.startsWith('/_next/')) return true
   if (pathname.startsWith('/auth/')) return true
-  if (pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp|css|js|woff|woff2|ttf)$/)) return true
+  if (pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp|css|js|woff|woff2|ttf|json|xml|txt)$/)) return true
+  if (pathname === '/sitemap.xml' || pathname === '/robots.txt' || pathname === '/manifest.json') return true
+  if (pathname === '/cookies') return true
   return false
 }
 
