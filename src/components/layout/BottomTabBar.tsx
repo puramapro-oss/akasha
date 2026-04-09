@@ -2,19 +2,21 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { MessageSquare, Wrench, Film, Store, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const TABS = [
-  { href: '/dashboard/chat', icon: MessageSquare, label: 'Chat' },
-  { href: '/dashboard/tools', icon: Wrench, label: 'Outils' },
-  { href: '/dashboard/studio', icon: Film, label: 'Studio' },
-  { href: '/dashboard/marketplace', icon: Store, label: 'Market' },
-  { href: '/dashboard/settings', icon: User, label: 'Profil' },
-]
+  { href: '/dashboard/chat', icon: MessageSquare, key: 'chat' },
+  { href: '/dashboard/tools', icon: Wrench, key: 'tools' },
+  { href: '/dashboard/studio', icon: Film, key: 'studio' },
+  { href: '/dashboard/marketplace', icon: Store, key: 'market' },
+  { href: '/dashboard/profile', icon: User, key: 'profile' },
+] as const
 
 export default function BottomTabBar() {
   const pathname = usePathname()
+  const t = useTranslations('tabs')
 
   return (
     <nav
@@ -22,7 +24,7 @@ export default function BottomTabBar() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Navigation principale"
     >
-      {TABS.map(({ href, icon: Icon, label }) => {
+      {TABS.map(({ href, icon: Icon, key }) => {
         const active = pathname === href || pathname.startsWith(href + '/')
         return (
           <Link
@@ -30,14 +32,17 @@ export default function BottomTabBar() {
             href={href}
             data-testid={`tab-${href.split('/').pop()}`}
             className={cn(
-              'flex flex-1 flex-col items-center justify-center gap-1 py-3 text-xs font-medium transition-colors',
+              'flex flex-1 flex-col items-center justify-center gap-1 py-3 text-xs font-medium transition-all duration-200',
               active
                 ? 'text-[var(--cyan)]'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             )}
           >
-            <Icon className={cn('h-5 w-5', active && 'drop-shadow-[0_0_6px_var(--cyan)]')} />
-            <span>{label}</span>
+            <Icon className={cn(
+              'h-5 w-5 transition-transform duration-200',
+              active && 'drop-shadow-[0_0_6px_var(--cyan)] scale-110'
+            )} />
+            <span>{t(key)}</span>
           </Link>
         )
       })}

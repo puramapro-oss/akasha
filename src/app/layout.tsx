@@ -1,7 +1,11 @@
 import type { Metadata, Viewport } from 'next'
 import { Space_Grotesk, DM_Sans, JetBrains_Mono } from 'next/font/google'
+import { NextIntlClientProvider } from 'next-intl'
+import { getLocale, getMessages } from 'next-intl/server'
 import { Toaster } from 'sonner'
 import ErrorBoundary from '@/components/shared/ErrorBoundary'
+import CookieBanner from '@/components/shared/CookieBanner'
+import CursorGlow from '@/components/layout/CursorGlow'
 import './globals.css'
 
 const spaceGrotesk = Space_Grotesk({
@@ -67,16 +71,30 @@ export const viewport: Viewport = {
   maximumScale: 5,
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale()
+  const messages = await getMessages()
+
   return (
-    <html lang="fr" className={`${spaceGrotesk.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}>
+    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} className={`${spaceGrotesk.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('akasha-theme');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t}else{document.documentElement.dataset.theme='dark'}}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-screen bg-[var(--bg-void)] font-[family-name:var(--font-body)] text-[var(--text-primary)] antialiased">
-        <div className="nebula-orb fixed left-[10%] top-[20%] h-[400px] w-[400px] bg-[var(--cyan)]" />
-        <div className="nebula-orb fixed right-[15%] top-[60%] h-[350px] w-[350px] bg-[var(--purple)]" style={{ animationDelay: '-7s' }} />
-        <div className="nebula-orb fixed left-[60%] top-[10%] h-[300px] w-[300px] bg-[var(--pink)]" style={{ animationDelay: '-14s' }} />
-        <ErrorBoundary>
-          {children}
-        </ErrorBoundary>
+        <div className="aurora" />
+        <div className="grid-overlay" />
+        <div className="noise-overlay" />
+        <CursorGlow />
+        <NextIntlClientProvider messages={messages} locale={locale}>
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
+          <CookieBanner />
+        </NextIntlClientProvider>
         <Toaster
           position="top-right"
           toastOptions={{

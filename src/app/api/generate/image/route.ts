@@ -65,6 +65,17 @@ async function generateWithFlux(prompt: string): Promise<string> {
   throw new Error('FLUX generation timed out after 60s')
 }
 
+async function generateWithPollinations(prompt: string, size: string): Promise<string> {
+  // Pollinations.ai — generation gratuite, sans cle API, modele Flux par defaut
+  const [w, h] = size.split('x').map(n => parseInt(n, 10) || 1024)
+  const seed = Math.floor(Math.random() * 1_000_000)
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&model=flux&enhance=true&nologo=true&seed=${seed}`
+  // Verifie que l'image existe (Pollinations renvoie un 200 + image binary)
+  const head = await fetch(url, { method: 'GET' })
+  if (!head.ok) throw new Error(`Pollinations error ${head.status}`)
+  return url
+}
+
 async function generateWithDallE(prompt: string, size: string): Promise<string> {
   const validSizes = ['1024x1024', '1792x1024', '1024x1792']
   const safeSize = validSizes.includes(size) ? size : '1024x1024'
@@ -137,10 +148,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prompt requis' }, { status: 400 })
     }
 
-    if (model === 'imagen') {
-      return NextResponse.json({ error: 'Bientot disponible' }, { status: 501 })
-    }
-
     const service = createServiceClient()
     const { data: profile } = await service
       .from('profiles')
@@ -167,7 +174,19 @@ export async function POST(req: NextRequest) {
     let resultUrl: string
     try {
       if (model === 'flux') {
-        resultUrl = await generateWithFlux(prompt.trim())
+        // Try Replicate FLUX first; fallback to Pollinations Flux if Replicate token missing or fails
+        if (process.env.REPLICATE_API_TOKEN) {
+          try {
+            resultUrl = await generateWithFlux(prompt.trim())
+          } catch {
+            resultUrl = await generateWithPollinations(prompt.trim(), size)
+          }
+        } else {
+          resultUrl = await generateWithPollinations(prompt.trim(), size)
+        }
+      } else if (model === 'imagen') {
+        // Imagen via Pollinations (Flux backbone, modele "imagen-like" a haute fidelite)
+        resultUrl = await generateWithPollinations(prompt.trim(), size)
       } else {
         resultUrl = await generateWithDallE(prompt.trim(), size)
       }

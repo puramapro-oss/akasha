@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Send, Plus, Search, MessageSquare, Star, Archive, ChevronDown, Mic, Volume2, Loader2, Bot } from 'lucide-react'
+import { Send, Plus, Search, MessageSquare, ChevronDown, Mic, MicOff, Loader2, Bot } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import ReactMarkdown from 'react-markdown'
@@ -32,6 +32,27 @@ interface QuotaInfo {
   isSuperAdmin: boolean
 }
 
+// Minimal SpeechRecognition typing — Web Speech API is browser-native (Chrome, Edge, Safari)
+interface SpeechRecognitionResult {
+  isFinal: boolean
+  0: { transcript: string }
+}
+interface SpeechRecognitionEvent extends Event {
+  results: { length: number; [index: number]: SpeechRecognitionResult }
+  resultIndex: number
+}
+interface SpeechRecognitionLike {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  start: () => void
+  stop: () => void
+  onresult: ((e: SpeechRecognitionEvent) => void) | null
+  onerror: ((e: Event) => void) | null
+  onend: (() => void) | null
+}
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike
+
 // ─── Model Selector ───────────────────────────────────────────────────────────
 
 function ModelSelector({
@@ -54,11 +75,6 @@ function ModelSelector({
   }, [])
 
   function handleSelect(m: typeof AI_MODELS[number]) {
-    if (m.id !== 'claude-sonnet-4') {
-      toast.info(`${m.name} — Bientôt disponible !`)
-      setOpen(false)
-      return
-    }
     onSelect(m.id)
     setOpen(false)
   }
@@ -82,25 +98,27 @@ function ModelSelector({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-2xl border border-white/[0.06] bg-[#13141a] shadow-xl">
+        <div className="absolute left-0 top-full z-50 mt-1 w-72 rounded-2xl border border-white/[0.06] bg-[#13141a] shadow-xl">
           {AI_MODELS.map(m => (
             <button
               key={m.id}
               onClick={() => handleSelect(m)}
               className={cn(
-                'flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-white/5 transition-colors first:rounded-t-2xl last:rounded-b-2xl',
-                m.id === selected && 'bg-white/[0.04]',
-                m.id !== 'claude-sonnet-4' && 'opacity-60'
+                'flex w-full flex-col gap-1 px-4 py-3 text-sm hover:bg-white/5 transition-colors text-left first:rounded-t-2xl last:rounded-b-2xl',
+                m.id === selected && 'bg-white/[0.04]'
               )}
             >
-              <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: m.color }} />
-              <span className="flex-1 text-left font-medium">{m.name}</span>
-              <span
-                className="rounded px-1 py-0.5 text-[10px] font-bold"
-                style={{ backgroundColor: m.color + '22', color: m.color }}
-              >
-                {m.id !== 'claude-sonnet-4' ? 'Bientôt' : m.badge}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: m.color }} />
+                <span className="flex-1 font-medium">{m.name}</span>
+                <span
+                  className="rounded px-1 py-0.5 text-[10px] font-bold"
+                  style={{ backgroundColor: m.color + '22', color: m.color }}
+                >
+                  {m.badge}
+                </span>
+              </div>
+              <p className="ml-5 text-[11px] text-[var(--text-muted)]">{m.description}</p>
             </button>
           ))}
         </div>
@@ -197,7 +215,9 @@ export default function ChatPage() {
   // Input
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
-  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4')
+  const [selectedModel, setSelectedModel] = useState<string>('akasha-sonnet')
+  const [listening, setListening] = useState(false)
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
 
   // Quota
   const [quota, setQuota] = useState<QuotaInfo | null>(null)
@@ -325,6 +345,7 @@ export default function ChatPage() {
         body: JSON.stringify({
           messages: history,
           conversationId: activeConvId ?? undefined,
+          model: selectedModel,
         }),
       })
 
@@ -413,7 +434,57 @@ export default function ChatPage() {
     } finally {
       setSending(false)
     }
-  }, [input, sending, messages, activeConvId, fetchConversations, fetchQuota])
+  }, [input, sending, messages, activeConvId, fetchConversations, fetchQuota, selectedModel])
+
+  // ── Voice input (Web Speech API — native browser, gratuit, hors-ligne sur Safari) ──
+  const toggleVoice = useCallback(() => {
+    if (typeof window === 'undefined') return
+    const w = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionCtor
+      webkitSpeechRecognition?: SpeechRecognitionCtor
+    }
+    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition
+    if (!Ctor) {
+      toast.error('Reconnaissance vocale non supportee par ce navigateur (essaie Chrome, Edge ou Safari)')
+      return
+    }
+    if (listening && recognitionRef.current) {
+      recognitionRef.current.stop()
+      return
+    }
+    const recog = new Ctor()
+    recog.lang = 'fr-FR'
+    recog.continuous = false
+    recog.interimResults = true
+    recog.onresult = (e: SpeechRecognitionEvent) => {
+      let interim = ''
+      let final = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i]
+        if (r.isFinal) final += r[0].transcript
+        else interim += r[0].transcript
+      }
+      if (final) setInput(prev => (prev + ' ' + final).trim())
+      else if (interim) setInput(prev => (prev ? prev + ' ' : '') + interim)
+    }
+    recog.onerror = () => {
+      setListening(false)
+      toast.error('Erreur reconnaissance vocale')
+    }
+    recog.onend = () => {
+      setListening(false)
+      recognitionRef.current = null
+    }
+    recognitionRef.current = recog
+    try {
+      recog.start()
+      setListening(true)
+      toast.success('Parle maintenant — clique a nouveau pour arreter')
+    } catch {
+      setListening(false)
+      toast.error('Impossible de demarrer le micro')
+    }
+  }, [listening])
 
   // ── Key handler ───────────────────────────────────────────────────────────────
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -575,13 +646,19 @@ export default function ChatPage() {
                 data-testid="chat-input"
               />
               <div className="flex items-center gap-2 flex-shrink-0">
-                {/* Mic button (future) */}
+                {/* Mic button — Web Speech API native */}
                 <button
-                  onClick={() => toast.info('Mode vocal — Bientôt disponible !')}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/10 transition-colors"
-                  title="Entrée vocale"
+                  onClick={toggleVoice}
+                  className={cn(
+                    'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
+                    listening
+                      ? 'bg-red-500/20 text-red-400 animate-pulse'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/10'
+                  )}
+                  title={listening ? 'Arreter le micro' : 'Dictee vocale'}
+                  data-testid="chat-mic"
                 >
-                  <Mic className="h-4 w-4" />
+                  {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                 </button>
 
                 {/* Send button */}

@@ -20,7 +20,10 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = (await req.json()) as { messages: ChatMessage[]; conversationId?: string; model?: string }
-    const { messages, conversationId } = body
+    const { messages, conversationId, model: requestedModel } = body
+    const akashaModel = requestedModel && ['akasha-sonnet', 'akasha-opus', 'akasha-haiku'].includes(requestedModel)
+      ? requestedModel
+      : 'akasha-sonnet'
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: 'Messages required' }, { status: 400 })
     }
@@ -68,7 +71,7 @@ export async function POST(req: NextRequest) {
         .insert({
           user_id: user.id,
           title: firstMsg.slice(0, 60),
-          model: 'claude-sonnet-4',
+          model: akashaModel,
         })
         .select('id')
         .single()
@@ -118,7 +121,7 @@ export async function POST(req: NextRequest) {
           if (currentConvId) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ conversationId: currentConvId })}\n\n`))
           }
-          for await (const chunk of streamClaude(messages, plan, getSystemPrompt())) {
+          for await (const chunk of streamClaude(messages, plan, getSystemPrompt(), akashaModel)) {
             fullResponse += chunk
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`))
           }
@@ -128,7 +131,7 @@ export async function POST(req: NextRequest) {
               conversation_id: currentConvId,
               role: 'assistant',
               content: fullResponse,
-              model: 'claude-sonnet-4',
+              model: akashaModel,
             })
           }
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { Users, Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase'
@@ -162,11 +163,13 @@ export default function CollabPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="spaces-grid">
           {spaces.map((space, idx) => (
-            <Card
+            <Link
+              href={`/dashboard/collab/${space.id}`}
               key={space.id}
-              className="group flex cursor-pointer flex-col gap-4 p-5 transition-all hover:scale-[1.02]"
-              onClick={() => toast.info('Espace collaboratif bientot disponible')}
               data-testid={`space-card-${space.id}`}
+            >
+            <Card
+              className="group flex cursor-pointer flex-col gap-4 p-5 transition-all hover:scale-[1.02]"
             >
               <div className="flex items-center gap-3">
                 <div
@@ -200,6 +203,7 @@ export default function CollabPage() {
                 Cree le {formatDate(space.created_at)}
               </p>
             </Card>
+            </Link>
           ))}
         </div>
       )}

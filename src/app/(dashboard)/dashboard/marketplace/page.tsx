@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Star, Download, ShieldCheck, Store } from 'lucide-react'
+import { Search, Star, Download, ShieldCheck, Store, X, Globe, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -41,6 +41,15 @@ const ACCENT_COLORS = [
   'bg-[var(--green)]', 'bg-[var(--gold)]', 'bg-[var(--orange)]',
 ]
 
+interface OwnAgent {
+  id: string
+  name: string
+  description: string | null
+  is_public: boolean
+  icon: string | null
+  color: string | null
+}
+
 export default function MarketplacePage() {
   const { user } = useAuth()
   const [agents, setAgents] = useState<Agent[]>([])
@@ -48,6 +57,10 @@ export default function MarketplacePage() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FilterType>('all')
   const [installing, setInstalling] = useState<string | null>(null)
+  const [showPublish, setShowPublish] = useState(false)
+  const [ownAgents, setOwnAgents] = useState<OwnAgent[]>([])
+  const [loadingOwn, setLoadingOwn] = useState(false)
+  const [publishingId, setPublishingId] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -68,6 +81,40 @@ export default function MarketplacePage() {
   useEffect(() => {
     fetchAgents()
   }, [fetchAgents])
+
+  const openPublishModal = useCallback(async () => {
+    if (!user) {
+      toast.error('Connecte-toi pour publier un agent')
+      return
+    }
+    setShowPublish(true)
+    setLoadingOwn(true)
+    const { data } = await supabase
+      .from('agents')
+      .select('id, name, description, is_public, icon, color')
+      .eq('creator_id', user.id)
+      .order('created_at', { ascending: false })
+    setOwnAgents((data ?? []) as OwnAgent[])
+    setLoadingOwn(false)
+  }, [user, supabase])
+
+  const handlePublishAgent = async (agentId: string, currentlyPublic: boolean) => {
+    setPublishingId(agentId)
+    const { error } = await supabase
+      .from('agents')
+      .update({ is_public: !currentlyPublic })
+      .eq('id', agentId)
+    if (error) {
+      toast.error('Erreur publication')
+    } else {
+      toast.success(currentlyPublic ? 'Agent retire de la marketplace' : 'Agent publie sur la marketplace !')
+      setOwnAgents((prev) =>
+        prev.map((a) => (a.id === agentId ? { ...a, is_public: !currentlyPublic } : a))
+      )
+      fetchAgents()
+    }
+    setPublishingId(null)
+  }
 
   const handleInstall = async (agent: Agent) => {
     if (!user) {
@@ -117,13 +164,22 @@ export default function MarketplacePage() {
   return (
     <div className="flex flex-col gap-6" data-testid="marketplace-page">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--text-primary)] font-[family-name:var(--font-display)]">
-          Marketplace
-        </h1>
-        <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
-          Decouvre les agents de la communaute
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] font-[family-name:var(--font-display)]">
+            Marketplace
+          </h1>
+          <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
+            Decouvre les agents de la communaute
+          </p>
+        </div>
+        <Button
+          icon={<Plus className="h-4 w-4" />}
+          onClick={openPublishModal}
+          data-testid="open-publish-btn"
+        >
+          Publier un agent
+        </Button>
       </div>
 
       {/* Search + Filters */}
@@ -175,7 +231,7 @@ export default function MarketplacePage() {
           }
           action={
             !search ? (
-              <Button onClick={() => toast.info('Publie ton agent depuis la page Agents')}>
+              <Button onClick={openPublishModal}>
                 Publier un agent
               </Button>
             ) : undefined
@@ -243,6 +299,79 @@ export default function MarketplacePage() {
               </Button>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Publish modal */}
+      {showPublish && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={(e) => e.target === e.currentTarget && setShowPublish(false)}
+          data-testid="publish-modal"
+        >
+          <Card className="w-full max-w-md p-6 max-h-[80vh] overflow-y-auto">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[var(--text-primary)]">Publier un agent</h2>
+              <button
+                onClick={() => setShowPublish(false)}
+                className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-white/10"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mb-4 text-sm text-[var(--text-secondary)]">
+              Choisis un de tes agents customs a rendre public sur la marketplace.
+            </p>
+
+            {loadingOwn ? (
+              <div className="flex flex-col gap-2">
+                {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
+              </div>
+            ) : ownAgents.length === 0 ? (
+              <EmptyState
+                title="Aucun agent custom"
+                description="Cree d'abord un agent depuis la page Agents."
+                action={
+                  <Button onClick={() => { setShowPublish(false); window.location.href = '/dashboard/agents' }}>
+                    Aller a la page Agents
+                  </Button>
+                }
+              />
+            ) : (
+              <div className="flex flex-col gap-2">
+                {ownAgents.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-white/5 p-3"
+                    data-testid={`own-agent-${a.id}`}
+                  >
+                    <div
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg"
+                      style={{ backgroundColor: (a.color ?? '#00d4ff') + '22' }}
+                    >
+                      {a.icon ?? '🤖'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{a.name}</p>
+                      <p className="truncate text-xs text-[var(--text-muted)]">
+                        {a.description ?? 'Pas de description'}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={a.is_public ? 'ghost' : 'secondary'}
+                      onClick={() => handlePublishAgent(a.id, a.is_public)}
+                      loading={publishingId === a.id}
+                      icon={<Globe className="h-3.5 w-3.5" />}
+                      data-testid={`publish-toggle-${a.id}`}
+                    >
+                      {a.is_public ? 'Retirer' : 'Publier'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
         </div>
       )}
     </div>

@@ -108,22 +108,78 @@ export default function XPPage() {
     setLoadingBadges(false)
   }, [user, supabase])
 
-  const fetchLeaderboard = useCallback(async () => {
+  const fetchLeaderboard = useCallback(async (tab: LeaderboardTab) => {
     setLoadingLeader(true)
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, display_name, avatar_url, level, xp')
-      .order('xp', { ascending: false })
-      .limit(20)
 
-    if (data) setLeaderboard(data as LeaderboardEntry[])
+    if (tab === 'alltime') {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url, level, xp')
+        .order('xp', { ascending: false })
+        .limit(20)
+      if (data) setLeaderboard(data as LeaderboardEntry[])
+      setLoadingLeader(false)
+      return
+    }
+
+    // Weekly / monthly: somme des xp_log filtres par date
+    const sinceDate = new Date()
+    if (tab === 'week') sinceDate.setDate(sinceDate.getDate() - 7)
+    else sinceDate.setMonth(sinceDate.getMonth() - 1)
+
+    const { data: logs } = await supabase
+      .from('xp_log')
+      .select('user_id, xp_earned')
+      .gte('created_at', sinceDate.toISOString())
+
+    const totals = new Map<string, number>()
+    for (const log of (logs ?? []) as { user_id: string; xp_earned: number }[]) {
+      totals.set(log.user_id, (totals.get(log.user_id) ?? 0) + (log.xp_earned ?? 0))
+    }
+    const topIds = Array.from(totals.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20)
+      .map(([id]) => id)
+
+    if (topIds.length === 0) {
+      setLeaderboard([])
+      setLoadingLeader(false)
+      return
+    }
+
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url, level')
+      .in('id', topIds)
+
+    const profMap = new Map(
+      ((profiles ?? []) as { id: string; display_name: string | null; avatar_url: string | null; level: number }[]).map((p) => [p.id, p])
+    )
+    const merged: LeaderboardEntry[] = topIds
+      .map((id) => {
+        const p = profMap.get(id)
+        if (!p) return null
+        return {
+          id,
+          display_name: p.display_name,
+          avatar_url: p.avatar_url,
+          level: p.level,
+          xp: totals.get(id) ?? 0,
+        }
+      })
+      .filter((x): x is LeaderboardEntry => x !== null)
+
+    setLeaderboard(merged)
     setLoadingLeader(false)
   }, [supabase])
 
   useEffect(() => {
     fetchBadges()
-    fetchLeaderboard()
-  }, [fetchBadges, fetchLeaderboard])
+  }, [fetchBadges])
+
+  useEffect(() => {
+    fetchLeaderboard(leaderTab)
+  }, [fetchLeaderboard, leaderTab])
 
   const level = profile?.level ?? 1
   const xp = profile?.xp ?? 0
@@ -222,7 +278,7 @@ export default function XPPage() {
           <EmptyState
             icon={<Trophy className="h-10 w-10" />}
             title="Aucun badge disponible"
-            description="Les badges arrivent bientot !"
+            description="Aucun badge disponible pour le moment."
           />
         ) : (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
@@ -277,12 +333,7 @@ export default function XPPage() {
             )}
           </div>
 
-          {leaderTab !== 'alltime' ? (
-            <div className="flex flex-col items-center gap-2 py-10 text-center">
-              <Trophy className="h-8 w-8 text-[var(--text-muted)]" />
-              <p className="text-sm text-[var(--text-secondary)]">Bientot disponible</p>
-            </div>
-          ) : loadingLeader ? (
+          {loadingLeader ? (
             <div className="flex flex-col gap-2 p-4">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Skeleton key={i} className="h-12 rounded-xl" />

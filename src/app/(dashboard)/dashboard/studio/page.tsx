@@ -35,7 +35,7 @@ const TABS: { id: StudioTab; label: string; icon: React.ElementType }[] = [
 const IMAGE_MODELS = [
   { id: 'flux', label: 'FLUX Pro', badge: 'LIVE', available: true },
   { id: 'dalle', label: 'DALL-E 3', badge: 'LIVE', available: true },
-  { id: 'imagen', label: 'Imagen 3', badge: 'Bientot', available: false },
+  { id: 'imagen', label: 'Pollinations Flux', badge: 'LIVE', available: true },
 ]
 
 const CODE_LANGUAGES = [

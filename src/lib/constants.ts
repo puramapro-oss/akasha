@@ -71,13 +71,10 @@ export const PUBLIC_ROUTES = [
   '/onboarding', '/mentions-legales', '/politique-confidentialite', '/cgv', '/cgu',
 ]
 
+// AKASHA models — chaque entrée est un mode reel (route AKASHA vers une variante Claude differente cote serveur).
+// 0 facade : tous les modeles listes fonctionnent.
 export const AI_MODELS = [
-  { id: 'claude-sonnet-4', name: 'Claude Sonnet 4', provider: 'anthropic', badge: 'LIVE', color: '#d97757' },
-  { id: 'gpt-4o', name: 'GPT-4o', provider: 'openai', badge: 'LIVE', color: '#10a37f' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'google', badge: 'LIVE', color: '#4285f4' },
-  { id: 'mistral-large', name: 'Mistral Large', provider: 'mistral', badge: 'LIVE', color: '#ff7000' },
-  { id: 'deepseek-r2', name: 'DeepSeek R2', provider: 'deepseek', badge: 'LIVE', color: '#0ea5e9' },
-  { id: 'grok-3', name: 'Grok 3', provider: 'xai', badge: 'LIVE', color: '#1d9bf0' },
-  { id: 'llama-3.2-3b', name: 'Llama 3.2 3B', provider: 'local', badge: 'LOCAL', color: '#6366f1' },
-  { id: 'perplexity-sonar', name: 'Perplexity Sonar', provider: 'perplexity', badge: 'LIVE', color: '#20b2aa' },
+  { id: 'akasha-sonnet', name: 'AKASHA Sonnet', provider: 'akasha', badge: 'LIVE', color: '#00d4ff', description: 'Le plus equilibre — qualite premium, vitesse standard' },
+  { id: 'akasha-opus', name: 'AKASHA Opus', provider: 'akasha', badge: 'PRO', color: '#a855f7', description: 'Reflexion profonde — pour les taches complexes' },
+  { id: 'akasha-haiku', name: 'AKASHA Haiku', provider: 'akasha', badge: 'FAST', color: '#10b981', description: 'Ultra-rapide — reponses immediates' },
 ] as const

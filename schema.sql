@@ -158,6 +158,16 @@ CREATE TABLE IF NOT EXISTS akasha_ai.collab_members (
   UNIQUE(space_id, user_id)
 );
 
+-- Collab messages (chat partage par espace)
+CREATE TABLE IF NOT EXISTS akasha_ai.collab_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  space_id UUID REFERENCES akasha_ai.collab_spaces(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_collab_messages_space_id ON akasha_ai.collab_messages(space_id, created_at DESC);
+
 -- Badges
 CREATE TABLE IF NOT EXISTS akasha_ai.badges (
   id TEXT PRIMARY KEY,
@@ -394,6 +404,542 @@ SELECT id, 'matiss.frasne@gmail.com', 'Tissma', 'super_admin', 'complete', 'max'
 FROM auth.users WHERE email = 'matiss.frasne@gmail.com'
 ON CONFLICT (id) DO UPDATE SET role = 'super_admin', plan = 'complete', plan_tier = 'max', credits = 999999, daily_questions = 999999;
 
+-- ═══════════════════════════════════════════════════════════════════════
+-- V3 TABLES — Referral, Points, Achievements, Influencer, etc.
+-- ═══════════════════════════════════════════════════════════════════════
+
+-- Referrals
+CREATE TABLE IF NOT EXISTS akasha_ai.referral_codes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE UNIQUE,
+  code TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS akasha_ai.referrals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  referrer_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  referred_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  status TEXT DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(referrer_id, referred_id)
+);
+
+CREATE TABLE IF NOT EXISTS akasha_ai.commissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  referrer_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  referred_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  amount NUMERIC(10,2) NOT NULL,
+  type TEXT DEFAULT 'referral',
+  status TEXT DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS akasha_ai.referral_milestones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  tier TEXT NOT NULL,
+  reached_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Achievements
+CREATE TABLE IF NOT EXISTS akasha_ai.achievements (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  icon TEXT,
+  xp_reward INTEGER DEFAULT 0,
+  points_reward INTEGER DEFAULT 0,
+  condition_type TEXT,
+  condition_value INTEGER,
+  category TEXT DEFAULT 'general'
+);
+
+CREATE TABLE IF NOT EXISTS akasha_ai.user_achievements (
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  achievement_id TEXT REFERENCES akasha_ai.achievements(id),
+  earned_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (user_id, achievement_id)
+);
+
+-- Purama Points
+CREATE TABLE IF NOT EXISTS akasha_ai.purama_points (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE UNIQUE,
+  balance INTEGER DEFAULT 0,
+  lifetime_earned INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS akasha_ai.point_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  amount INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  source TEXT,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Point Shop
+CREATE TABLE IF NOT EXISTS akasha_ai.point_shop_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  category TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  cost_points INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  value TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS akasha_ai.point_purchases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  item_id UUID REFERENCES akasha_ai.point_shop_items(id),
+  points_spent INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Daily Gifts
+CREATE TABLE IF NOT EXISTS akasha_ai.daily_gifts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  gift_type TEXT NOT NULL,
+  gift_value TEXT NOT NULL,
+  streak_count INTEGER DEFAULT 0,
+  opened_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Withdrawals
+CREATE TABLE IF NOT EXISTS akasha_ai.withdrawals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  amount NUMERIC(10,2) NOT NULL,
+  iban TEXT NOT NULL,
+  status TEXT DEFAULT 'pending',
+  requested_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- User Coupons
+CREATE TABLE IF NOT EXISTS akasha_ai.user_coupons (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  code TEXT NOT NULL,
+  discount_percent INTEGER NOT NULL,
+  source TEXT,
+  expires_at TIMESTAMPTZ,
+  used BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Invoices
+CREATE TABLE IF NOT EXISTS akasha_ai.invoices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  invoice_number TEXT UNIQUE NOT NULL,
+  amount INTEGER NOT NULL,
+  currency TEXT DEFAULT 'eur',
+  status TEXT DEFAULT 'paid',
+  stripe_invoice_id TEXT,
+  pdf_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Contests
+CREATE TABLE IF NOT EXISTS akasha_ai.contests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type TEXT NOT NULL,
+  period TEXT NOT NULL,
+  status TEXT DEFAULT 'active',
+  pool_amount NUMERIC(10,2) DEFAULT 0,
+  start_date TIMESTAMPTZ NOT NULL,
+  end_date TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS akasha_ai.contest_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contest_id UUID REFERENCES akasha_ai.contests(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  score INTEGER DEFAULT 0,
+  rank INTEGER,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(contest_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS akasha_ai.contest_results (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contest_id UUID REFERENCES akasha_ai.contests(id) ON DELETE CASCADE,
+  period TEXT NOT NULL,
+  type TEXT NOT NULL,
+  winners JSONB DEFAULT '[]',
+  amounts JSONB DEFAULT '[]',
+  total_pool NUMERIC(10,2) DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Lottery
+CREATE TABLE IF NOT EXISTS akasha_ai.lottery_draws (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  draw_date TIMESTAMPTZ NOT NULL,
+  pool_amount NUMERIC(10,2) DEFAULT 0,
+  status TEXT DEFAULT 'upcoming',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS akasha_ai.lottery_tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  draw_id UUID REFERENCES akasha_ai.lottery_draws(id) ON DELETE CASCADE,
+  source TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS akasha_ai.lottery_winners (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  draw_id UUID REFERENCES akasha_ai.lottery_draws(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  ticket_id UUID REFERENCES akasha_ai.lottery_tickets(id),
+  rank INTEGER NOT NULL,
+  amount_won NUMERIC(10,2) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Influencer
+CREATE TABLE IF NOT EXISTS akasha_ai.influencer_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE UNIQUE,
+  slug TEXT UNIQUE NOT NULL,
+  bio TEXT,
+  social_links JSONB DEFAULT '{}',
+  approved BOOLEAN DEFAULT true,
+  kit_downloaded BOOLEAN DEFAULT false,
+  tier TEXT DEFAULT 'bronze',
+  free_plan_granted TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS akasha_ai.influencer_stats (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE UNIQUE,
+  clicks INTEGER DEFAULT 0,
+  signups INTEGER DEFAULT 0,
+  conversions INTEGER DEFAULT 0,
+  revenue NUMERIC(10,2) DEFAULT 0,
+  conversion_rate NUMERIC(5,2) DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Cross-Promo
+CREATE TABLE IF NOT EXISTS akasha_ai.cross_promos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_app TEXT NOT NULL,
+  target_app TEXT NOT NULL,
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  coupon_code TEXT,
+  used BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Social Shares
+CREATE TABLE IF NOT EXISTS akasha_ai.social_shares (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  share_code TEXT NOT NULL,
+  platform_hint TEXT,
+  shared_at TIMESTAMPTZ DEFAULT now(),
+  points_given INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS akasha_ai.share_conversions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  share_id UUID REFERENCES akasha_ai.social_shares(id) ON DELETE CASCADE,
+  new_user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  converted_at TIMESTAMPTZ DEFAULT now(),
+  bonus_points_given INTEGER DEFAULT 0
+);
+
+-- Support
+CREATE TABLE IF NOT EXISTS akasha_ai.support_tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  status TEXT DEFAULT 'open',
+  priority TEXT DEFAULT 'normal',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- FAQ
+CREATE TABLE IF NOT EXISTS akasha_ai.faq_articles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  category TEXT NOT NULL,
+  question TEXT NOT NULL,
+  answer TEXT NOT NULL,
+  search_keywords TEXT[] DEFAULT '{}',
+  view_count INTEGER DEFAULT 0,
+  helpful_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Contact
+CREATE TABLE IF NOT EXISTS akasha_ai.contact_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  sent_at TIMESTAMPTZ DEFAULT now(),
+  responded BOOLEAN DEFAULT false
+);
+
+-- Email Sequences
+CREATE TABLE IF NOT EXISTS akasha_ai.email_sequences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  email_type TEXT NOT NULL,
+  sent_at TIMESTAMPTZ DEFAULT now(),
+  opened BOOLEAN DEFAULT false,
+  clicked BOOLEAN DEFAULT false
+);
+
+-- Notification Preferences
+CREATE TABLE IF NOT EXISTS akasha_ai.notification_preferences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE UNIQUE,
+  types JSONB DEFAULT '{}',
+  frequency TEXT DEFAULT 'normal',
+  hour_start INTEGER DEFAULT 9,
+  hour_end INTEGER DEFAULT 20,
+  paused_until TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Pool Balances (reward/asso/partner)
+CREATE TABLE IF NOT EXISTS akasha_ai.pool_balances (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pool_type TEXT UNIQUE NOT NULL,
+  balance NUMERIC(10,2) DEFAULT 0,
+  total_in NUMERIC(10,2) DEFAULT 0,
+  total_out NUMERIC(10,2) DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS akasha_ai.pool_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pool_type TEXT NOT NULL,
+  amount NUMERIC(10,2) NOT NULL,
+  direction TEXT NOT NULL,
+  reason TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Pending Earnings (free users)
+CREATE TABLE IF NOT EXISTS akasha_ai.pending_earnings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  amount NUMERIC(10,2) NOT NULL,
+  source TEXT NOT NULL,
+  unlocked BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- User Feedback
+CREATE TABLE IF NOT EXISTS akasha_ai.user_feedback (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES akasha_ai.profiles(id) ON DELETE CASCADE,
+  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT,
+  category TEXT,
+  points_given INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Health Checks (monitoring)
+CREATE TABLE IF NOT EXISTS akasha_ai.health_checks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  status TEXT NOT NULL,
+  response_time_ms INTEGER,
+  checked_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- RLS for V3 tables
+-- ═══════════════════════════════════════════════════════════════════════
+
+ALTER TABLE akasha_ai.referral_codes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.referrals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.commissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.referral_milestones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.achievements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.user_achievements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.purama_points ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.point_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.point_shop_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.point_purchases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.daily_gifts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.withdrawals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.user_coupons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.contests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.contest_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.contest_results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.lottery_draws ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.lottery_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.lottery_winners ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.influencer_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.influencer_stats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.cross_promos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.social_shares ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.share_conversions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.support_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.faq_articles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.contact_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.email_sequences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.notification_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.pool_balances ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.pool_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.pending_earnings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.user_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE akasha_ai.health_checks ENABLE ROW LEVEL SECURITY;
+
+-- V3 RLS Policies
+DO $$ BEGIN
+  -- Referrals
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_referral_codes' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_referral_codes ON akasha_ai.referral_codes FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_referrals' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_referrals ON akasha_ai.referrals FOR ALL USING (auth.uid() = referrer_id OR auth.uid() = referred_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_commissions' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_commissions ON akasha_ai.commissions FOR ALL USING (auth.uid() = referrer_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_referral_milestones' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_referral_milestones ON akasha_ai.referral_milestones FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- Achievements (public read)
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'anyone_read_achievements' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY anyone_read_achievements ON akasha_ai.achievements FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_user_achievements' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_user_achievements ON akasha_ai.user_achievements FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- Points
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_points' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_points ON akasha_ai.purama_points FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_point_txns' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_point_txns ON akasha_ai.point_transactions FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- Shop items (public read)
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'anyone_read_shop_items' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY anyone_read_shop_items ON akasha_ai.point_shop_items FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_purchases' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_purchases ON akasha_ai.point_purchases FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- Daily gifts
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_daily_gifts' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_daily_gifts ON akasha_ai.daily_gifts FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- Withdrawals
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_withdrawals' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_withdrawals ON akasha_ai.withdrawals FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- Coupons
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_coupons' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_coupons ON akasha_ai.user_coupons FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- Invoices
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_invoices' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_invoices ON akasha_ai.invoices FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- Contests (public read)
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'anyone_read_contests' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY anyone_read_contests ON akasha_ai.contests FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_contest_entries' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_contest_entries ON akasha_ai.contest_entries FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'anyone_read_contest_results' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY anyone_read_contest_results ON akasha_ai.contest_results FOR SELECT USING (true);
+  END IF;
+  -- Lottery (public read draws)
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'anyone_read_lottery_draws' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY anyone_read_lottery_draws ON akasha_ai.lottery_draws FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_lottery_tickets' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_lottery_tickets ON akasha_ai.lottery_tickets FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_lottery_wins' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_lottery_wins ON akasha_ai.lottery_winners FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- Influencer
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_influencer_profile' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_influencer_profile ON akasha_ai.influencer_profiles FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_influencer_stats' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_influencer_stats ON akasha_ai.influencer_stats FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- Cross promo
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_cross_promos' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_cross_promos ON akasha_ai.cross_promos FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- Social shares
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_social_shares' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_social_shares ON akasha_ai.social_shares FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- Support tickets
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_support_tickets' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_support_tickets ON akasha_ai.support_tickets FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- FAQ (public)
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'anyone_read_faq' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY anyone_read_faq ON akasha_ai.faq_articles FOR SELECT USING (true);
+  END IF;
+  -- Contact (insert only)
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'anyone_insert_contact' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY anyone_insert_contact ON akasha_ai.contact_messages FOR INSERT WITH CHECK (true);
+  END IF;
+  -- Email sequences
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_email_sequences' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_email_sequences ON akasha_ai.email_sequences FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- Notification prefs
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_notif_prefs' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_notif_prefs ON akasha_ai.notification_preferences FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- Pending earnings
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_pending_earnings' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_pending_earnings ON akasha_ai.pending_earnings FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  -- User feedback
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_feedback' AND schemaname = 'akasha_ai') THEN
+    CREATE POLICY users_own_feedback ON akasha_ai.user_feedback FOR ALL USING (auth.uid() = user_id);
+  END IF;
+END $$;
+
+-- V3 Indexes
+CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON akasha_ai.referrals(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_commissions_referrer ON akasha_ai.commissions(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_point_txns_user ON akasha_ai.point_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_daily_gifts_user ON akasha_ai.daily_gifts(user_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_user ON akasha_ai.invoices(user_id);
+CREATE INDEX IF NOT EXISTS idx_lottery_tickets_user ON akasha_ai.lottery_tickets(user_id);
+CREATE INDEX IF NOT EXISTS idx_social_shares_user ON akasha_ai.social_shares(user_id);
+CREATE INDEX IF NOT EXISTS idx_influencer_slug ON akasha_ai.influencer_profiles(slug);
+
+-- Init pool balances
+INSERT INTO akasha_ai.pool_balances (pool_type, balance) VALUES
+  ('reward', 0), ('asso', 0), ('partner', 0)
+ON CONFLICT (pool_type) DO NOTHING;
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- Seeds
+-- ═══════════════════════════════════════════════════════════════════════
+
 -- Seed badges
 INSERT INTO akasha_ai.badges (id, name, description, icon, xp_reward, condition_type, condition_value) VALUES
   ('first_step', 'Premier Pas', 'Premiere utilisation', '🌱', 10, 'count', 1),
@@ -409,3 +955,41 @@ INSERT INTO akasha_ai.badges (id, name, description, icon, xp_reward, condition_
   ('connector', 'Connecteur', '10 personnes invitees', '👥', 200, 'count', 10),
   ('beta_tester', 'Beta Testeur', 'Badge exclusif early adopters', '🧪', 100, 'count', 1)
 ON CONFLICT (id) DO NOTHING;
+
+-- Seed achievements
+INSERT INTO akasha_ai.achievements (id, name, description, icon, xp_reward, points_reward, condition_type, condition_value, category) VALUES
+  ('first_chat', 'Premiere Conversation', 'Envoie ton premier message', '💬', 10, 100, 'chat_count', 1, 'general'),
+  ('chat_100', 'Bavard', '100 messages envoyes', '🗣️', 50, 300, 'chat_count', 100, 'general'),
+  ('image_first', 'Premier Chef-d oeuvre', 'Genere ta premiere image', '🖼️', 10, 100, 'image_count', 1, 'creation'),
+  ('image_50', 'Artiste Numerique', '50 images generees', '🎨', 100, 500, 'image_count', 50, 'creation'),
+  ('video_first', 'Cineaste', 'Genere ta premiere video', '🎬', 15, 150, 'video_count', 1, 'creation'),
+  ('agent_create', 'Architecte IA', 'Cree ton premier agent', '🤖', 25, 200, 'agent_count', 1, 'builder'),
+  ('agent_publish', 'Editeur', 'Publie un agent sur le marketplace', '📦', 50, 500, 'publish_count', 1, 'builder'),
+  ('streak_3', 'Regulier', '3 jours consecutifs', '🔥', 20, 100, 'streak', 3, 'engagement'),
+  ('streak_7', 'Flamme', '7 jours consecutifs', '🔥', 50, 300, 'streak', 7, 'engagement'),
+  ('streak_30', 'Legende', '30 jours consecutifs', '💎', 200, 1000, 'streak', 30, 'engagement'),
+  ('referral_first', 'Ambassadeur', 'Invite ton premier ami', '👥', 50, 500, 'referral_count', 1, 'social'),
+  ('referral_10', 'Influenceur', '10 amis invites', '🌟', 200, 2000, 'referral_count', 10, 'social'),
+  ('level_10', 'Apprenti', 'Atteins le niveau 10', '📈', 100, 500, 'level', 10, 'progression'),
+  ('level_50', 'Expert', 'Atteins le niveau 50', '🏆', 500, 2500, 'level', 50, 'progression'),
+  ('level_100', 'Akashique', 'Atteins le niveau 100', '🌌', 1000, 5000, 'level', 100, 'progression')
+ON CONFLICT (id) DO NOTHING;
+
+-- Seed FAQ
+INSERT INTO akasha_ai.faq_articles (category, question, answer, search_keywords) VALUES
+  ('general', 'Qu est-ce qu AKASHA AI ?', 'AKASHA AI est un agregateur multi-IA qui te permet d acceder a plusieurs modeles d intelligence artificielle depuis une seule interface. Chat, generation d images, videos, musique, code — tout est reuni.', ARRAY['akasha', 'ia', 'intelligence', 'artificielle', 'agregateur']),
+  ('general', 'Comment creer un compte ?', 'Clique sur "Commencer gratuitement" sur la page d accueil, puis remplis le formulaire d inscription avec ton email ou connecte-toi avec Google.', ARRAY['compte', 'inscription', 'signup', 'google']),
+  ('general', 'AKASHA est-il gratuit ?', 'Oui ! Le plan gratuit te donne acces a 10 questions par jour. Pour plus de fonctionnalites, decouvre nos plans payants a partir de 7 euros/mois.', ARRAY['gratuit', 'prix', 'free', 'plan']),
+  ('chat', 'Comment changer de modele IA ?', 'Dans le chat, clique sur le selecteur de modele en haut. Tu peux choisir entre AKASHA Sonnet (equilibre), Opus (reflexion profonde) ou Haiku (ultra-rapide).', ARRAY['modele', 'model', 'sonnet', 'opus', 'haiku', 'changer']),
+  ('chat', 'Mes conversations sont-elles privees ?', 'Absolument. Tes conversations sont chiffrees et stockees de maniere securisee. Personne d autre que toi n y a acces.', ARRAY['prive', 'securite', 'donnees', 'confidentialite']),
+  ('creation', 'Comment generer une image ?', 'Va dans Studio Creatif depuis le menu, choisis "Image", decris ce que tu veux en detail et clique sur Generer. Plus ta description est precise, meilleur sera le resultat.', ARRAY['image', 'generer', 'creation', 'studio']),
+  ('creation', 'Quels formats de creation sont disponibles ?', 'AKASHA supporte la generation d images, de videos, de musique et de code. Chaque type a ses propres modeles specialises.', ARRAY['format', 'type', 'image', 'video', 'musique', 'code']),
+  ('agents', 'Qu est-ce qu un agent IA ?', 'Un agent est une IA personnalisee avec un role specifique. Par exemple, un agent "Expert Marketing" ou "Coach Fitness". Tu peux creer les tiens ou installer ceux du marketplace.', ARRAY['agent', 'personnalise', 'role', 'marketplace']),
+  ('agents', 'Comment publier un agent sur le marketplace ?', 'Cree ton agent dans "Mes Agents", teste-le, puis clique sur "Publier". Ton agent sera disponible pour tous les utilisateurs et tu pourras meme le monetiser.', ARRAY['publier', 'marketplace', 'vendre', 'monetiser']),
+  ('billing', 'Comment fonctionne la facturation ?', 'Les abonnements sont geres via Stripe. Tu peux payer par carte bancaire, PayPal ou Apple Pay. Les factures sont disponibles dans Parametres > Facturation.', ARRAY['facturation', 'paiement', 'stripe', 'facture', 'carte']),
+  ('billing', 'Comment annuler mon abonnement ?', 'Va dans Parametres > Facturation > Gerer mon abonnement. Tu seras redirige vers le portail Stripe ou tu pourras annuler. Tu garderas l acces jusqu a la fin de la periode payee.', ARRAY['annuler', 'resiliation', 'abonnement']),
+  ('referral', 'Comment fonctionne le parrainage ?', 'Partage ton lien de parrainage (disponible dans le dashboard). Quand quelqu un s inscrit avec ton lien, tu gagnes des points et des commissions sur ses abonnements. Paliers : Bronze (5), Argent (10), Or (25), Platine (50), Diamant (75), Legende (100).', ARRAY['parrainage', 'referral', 'invite', 'commission', 'lien']),
+  ('wallet', 'Comment retirer mes gains ?', 'Va dans ton Wallet, clique sur "Retirer". Montant minimum : 5 euros. Renseigne ton IBAN et les fonds seront vires sous 48h.', ARRAY['retrait', 'wallet', 'iban', 'argent', 'gains']),
+  ('points', 'A quoi servent les Purama Points ?', 'Les points te permettent d obtenir des reductions, des mois gratuits, des tickets de tirage ou de les convertir en euros. 1 point = 0.01 euros. Gagne-les en utilisant l app, en parrainant ou en completant des missions.', ARRAY['points', 'purama', 'reduction', 'conversion']),
+  ('support', 'Comment contacter le support ?', 'Utilise le chatbot d aide integre (bouton en bas a droite) ou envoie un message via la page Contact. Notre IA repond instantanement, et un humain prend le relais si necessaire.', ARRAY['support', 'contact', 'aide', 'probleme'])
+ON CONFLICT DO NOTHING;

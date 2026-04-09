@@ -124,6 +124,182 @@ export interface XpLog {
   created_at: string
 }
 
+export interface Referral {
+  id: string
+  referrer_id: string
+  referred_id: string
+  status: 'pending' | 'active' | 'converted'
+  created_at: string
+}
+
+export interface Commission {
+  id: string
+  referrer_id: string
+  referred_id: string
+  amount: number
+  type: string
+  status: 'pending' | 'paid'
+  created_at: string
+}
+
+export interface Achievement {
+  id: string
+  name: string
+  description: string | null
+  icon: string | null
+  xp_reward: number
+  points_reward: number
+  condition_type: string | null
+  condition_value: number | null
+  category: string
+}
+
+export interface UserAchievement {
+  user_id: string
+  achievement_id: string
+  earned_at: string
+  achievement?: Achievement
+}
+
+export interface PuramaPoints {
+  id: string
+  user_id: string
+  balance: number
+  lifetime_earned: number
+}
+
+export interface PointTransaction {
+  id: string
+  user_id: string
+  amount: number
+  type: string
+  source: string | null
+  description: string | null
+  created_at: string
+}
+
+export interface DailyGift {
+  id: string
+  user_id: string
+  gift_type: string
+  gift_value: string
+  streak_count: number
+  opened_at: string
+}
+
+export interface Invoice {
+  id: string
+  user_id: string
+  invoice_number: string
+  amount: number
+  currency: string
+  status: string
+  stripe_invoice_id: string | null
+  pdf_url: string | null
+  created_at: string
+}
+
+export interface Withdrawal {
+  id: string
+  user_id: string
+  amount: number
+  iban: string
+  status: 'pending' | 'processing' | 'completed'
+  requested_at: string
+}
+
+export interface InfluencerProfile {
+  id: string
+  user_id: string
+  slug: string
+  bio: string | null
+  social_links: Record<string, string>
+  approved: boolean
+  tier: string
+  created_at: string
+}
+
+export interface SocialShare {
+  id: string
+  user_id: string
+  share_code: string
+  platform_hint: string | null
+  shared_at: string
+  points_given: number
+}
+
+export interface FaqArticle {
+  id: string
+  category: string
+  question: string
+  answer: string
+  search_keywords: string[]
+  view_count: number
+  helpful_count: number
+}
+
+export interface Contest {
+  id: string
+  type: string
+  period: string
+  status: string
+  pool_amount: number
+  start_date: string
+  end_date: string
+}
+
+export interface LotteryDraw {
+  id: string
+  draw_date: string
+  pool_amount: number
+  status: 'upcoming' | 'live' | 'completed'
+}
+
+export interface LotteryTicket {
+  id: string
+  user_id: string
+  draw_id: string
+  source: string
+  created_at: string
+}
+
+export interface UserFeedback {
+  id: string
+  user_id: string
+  rating: number
+  comment: string | null
+  category: string | null
+  points_given: number
+  created_at: string
+}
+
+export interface ContactMessage {
+  name: string
+  email: string
+  subject: string
+  message: string
+}
+
+export interface EmailSequence {
+  id: string
+  user_id: string
+  email_type: string
+  sent_at: string
+  opened: boolean
+  clicked: boolean
+}
+
+export interface SupportTicket {
+  id: string
+  user_id: string
+  subject: string
+  message: string
+  status: 'open' | 'in_progress' | 'closed'
+  priority: 'low' | 'normal' | 'high'
+  created_at: string
+}
+
 export type Plan = 'free' | 'automate' | 'create' | 'build' | 'complete'
 export type PlanTier = 'essential' | 'pro' | 'max'
 export type Theme = 'dark' | 'light' | 'oled'
+export type ReferralTier = 'bronze' | 'argent' | 'or' | 'platine' | 'diamant' | 'legende'

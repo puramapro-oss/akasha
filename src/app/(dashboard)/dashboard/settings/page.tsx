@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Bell, Shield, Palette, CreditCard, Database, LogOut, X, Check } from 'lucide-react'
+import { User, Bell, Shield, Palette, CreditCard, Database, LogOut, X, Check, Globe } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -11,6 +11,7 @@ import Badge from '@/components/ui/Badge'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import { formatDate, formatPrice, cn } from '@/lib/utils'
+import { locales, localeNames, type Locale } from '@/i18n/config'
 
 type Tab = 'profile' | 'notifications' | 'security' | 'appearance' | 'billing' | 'data'
 
@@ -67,6 +68,7 @@ export default function SettingsPage() {
     weekly_digest: true,
   })
   const [accentColor, setAccentColor] = useState('#00d4ff')
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [payments, setPayments] = useState<Payment[]>([])
   const [loadingPayments, setLoadingPayments] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<'history' | 'account' | null>(null)
@@ -84,6 +86,24 @@ export default function SettingsPage() {
       setAccentColor(profile.accent_color ?? '#00d4ff')
     }
   }, [profile])
+
+  // Initialize theme from localStorage / DOM
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const stored = localStorage.getItem('akasha-theme') as 'dark' | 'light' | null
+    const initial: 'dark' | 'light' = stored ?? 'dark'
+    setTheme(initial)
+    document.documentElement.dataset.theme = initial
+  }, [])
+
+  const applyTheme = (next: 'dark' | 'light') => {
+    setTheme(next)
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.theme = next
+      localStorage.setItem('akasha-theme', next)
+    }
+    toast.success(next === 'dark' ? 'Mode sombre active' : 'Mode clair active')
+  }
 
   // Fetch payments when billing tab opens
   useEffect(() => {
@@ -162,14 +182,20 @@ export default function SettingsPage() {
   const handleManageBilling = async () => {
     try {
       const res = await fetch('/api/stripe/portal', { method: 'POST' })
-      const data = await res.json()
+      const data = (await res.json()) as { url?: string; error?: string }
       if (data.url) {
         window.location.href = data.url
-      } else {
-        toast.info('Portail de facturation bientot disponible')
+        return
       }
+      // No Stripe customer yet — guide user to pricing instead
+      if (res.status === 400) {
+        toast.info('Souscris a un plan pour acceder a la facturation')
+        window.location.href = '/pricing'
+        return
+      }
+      toast.error(data.error ?? 'Erreur acces facturation')
     } catch {
-      toast.info('Portail de facturation bientot disponible')
+      toast.error('Connexion impossible au portail Stripe')
     }
   }
 
@@ -394,14 +420,33 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-4" data-testid="appearance-tab">
               <Card className="p-6">
                 <h2 className="mb-4 font-semibold text-[var(--text-primary)]">Mode d&apos;affichage</h2>
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <p className="text-sm font-medium text-[var(--text-primary)]">Mode sombre</p>
-                    <p className="text-xs text-[var(--text-muted)]">Mode clair bientot disponible</p>
-                  </div>
-                  <div className="flex h-6 w-11 items-center justify-center rounded-full bg-[var(--cyan)]">
-                    <span className="h-5 w-5 rounded-full bg-white shadow translate-x-2.5" />
-                  </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => applyTheme('dark')}
+                    data-testid="theme-dark"
+                    className={cn(
+                      'flex flex-col items-center gap-2 rounded-xl border p-4 transition-all',
+                      theme === 'dark'
+                        ? 'border-[var(--cyan)] bg-[var(--cyan)]/10'
+                        : 'border-[var(--border)] hover:border-[var(--border-glow)]'
+                    )}
+                  >
+                    <div className="h-12 w-full rounded-lg bg-[#0a0a0f] border border-white/10" />
+                    <span className="text-sm font-medium text-[var(--text-primary)]">Sombre</span>
+                  </button>
+                  <button
+                    onClick={() => applyTheme('light')}
+                    data-testid="theme-light"
+                    className={cn(
+                      'flex flex-col items-center gap-2 rounded-xl border p-4 transition-all',
+                      theme === 'light'
+                        ? 'border-[var(--cyan)] bg-[var(--cyan)]/10'
+                        : 'border-[var(--border)] hover:border-[var(--border-glow)]'
+                    )}
+                  >
+                    <div className="h-12 w-full rounded-lg bg-[#f8fafc] border border-black/10" />
+                    <span className="text-sm font-medium text-[var(--text-primary)]">Clair</span>
+                  </button>
                 </div>
               </Card>
 
@@ -429,31 +474,39 @@ export default function SettingsPage() {
               </Card>
 
               <Card className="p-6">
-                <h2 className="mb-4 font-semibold text-[var(--text-primary)]">Langue</h2>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { code: 'fr', label: 'Francais', available: true },
-                    { code: 'en', label: 'English', available: false },
-                    { code: 'es', label: 'Espanol', available: false },
-                    { code: 'de', label: 'Deutsch', available: false },
-                  ].map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => !lang.available && toast.info('Bientot disponible')}
-                      className={cn(
-                        'rounded-xl border px-4 py-2 text-sm font-medium transition-all',
-                        lang.code === 'fr'
-                          ? 'border-[var(--cyan)] bg-[var(--cyan)]/10 text-[var(--cyan)]'
-                          : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-glow)]'
-                      )}
-                    >
-                      {lang.label}
-                      {!lang.available && (
-                        <span className="ml-1.5 text-xs opacity-60">Bientot</span>
-                      )}
-                    </button>
-                  ))}
+                <h2 className="mb-3 font-semibold text-[var(--text-primary)]">Langue de l&apos;interface</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {locales.map((locale) => {
+                    const currentLocale = (typeof document !== 'undefined' ? document.cookie.match(/locale=(\w+)/)?.[1] : 'fr') ?? 'fr'
+                    const isActive = locale === currentLocale
+                    return (
+                      <button
+                        key={locale}
+                        onClick={async () => {
+                          await fetch('/api/locale', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ locale }),
+                          })
+                          window.location.reload()
+                        }}
+                        className={cn(
+                          'flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition-all',
+                          isActive
+                            ? 'border-[var(--cyan)] bg-[var(--cyan)]/10 text-[var(--cyan)]'
+                            : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]'
+                        )}
+                      >
+                        <Globe className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{localeNames[locale]}</span>
+                        {isActive && <Check className="h-3.5 w-3.5 shrink-0 ml-auto" />}
+                      </button>
+                    )
+                  })}
                 </div>
+                <p className="mt-3 text-xs text-[var(--text-muted)]">
+                  L&apos;IA AKASHA repond automatiquement dans la langue de ta question.
+                </p>
               </Card>
             </div>
           )}

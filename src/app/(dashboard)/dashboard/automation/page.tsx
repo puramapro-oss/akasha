@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Zap, Plus, Play, Pause, AlertCircle, Clock, X, ChevronRight } from 'lucide-react'
+import { Zap, Plus, Play, Pause, Clock, X, ChevronRight, Trash2, ArrowDown, Settings } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,14 +12,30 @@ import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
 import { formatDate } from '@/lib/utils'
 
+interface WorkflowStep {
+  id: string
+  type: 'trigger' | 'ai' | 'http' | 'email' | 'delay' | 'condition'
+  label: string
+  config: Record<string, string>
+}
+
 interface Workflow {
   id: string
   name: string
   status: 'active' | 'paused' | 'error' | 'draft'
   last_run: string | null
   created_at: string
-  steps: unknown[]
+  steps: WorkflowStep[]
 }
+
+const STEP_TYPES: { type: WorkflowStep['type']; label: string; icon: string }[] = [
+  { type: 'trigger', label: 'Declencheur', icon: '⚡' },
+  { type: 'ai', label: 'Etape IA (AKASHA)', icon: '🤖' },
+  { type: 'http', label: 'Appel HTTP', icon: '🌐' },
+  { type: 'email', label: 'Envoi email', icon: '📧' },
+  { type: 'delay', label: 'Attente', icon: '⏱️' },
+  { type: 'condition', label: 'Condition', icon: '🔀' },
+]
 
 const TEMPLATES = [
   {
@@ -79,6 +95,8 @@ export default function AutomationPage() {
   const [showModal, setShowModal] = useState(false)
   const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<Workflow | null>(null)
+  const [savingEdit, setSavingEdit] = useState(false)
 
   const supabase = createClient()
 
@@ -91,7 +109,14 @@ export default function AutomationPage() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
-    if (!error && data) setWorkflows(data as Workflow[])
+    if (!error && data) {
+      setWorkflows(
+        (data as { id: string; name: string; status: Workflow['status']; last_run: string | null; created_at: string; steps: unknown }[]).map(w => ({
+          ...w,
+          steps: Array.isArray(w.steps) ? (w.steps as WorkflowStep[]) : [],
+        }))
+      )
+    }
     setLoading(false)
   }, [user, supabase])
 
@@ -135,6 +160,33 @@ export default function AutomationPage() {
     } else {
       toast.success(`Workflow "${template.name}" cree ! Retrouve-le dans "Mes workflows".`)
       setActiveTab('my')
+      fetchWorkflows()
+    }
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editing) return
+    setSavingEdit(true)
+    const { error } = await supabase
+      .from('workflows')
+      .update({ name: editing.name, steps: editing.steps })
+      .eq('id', editing.id)
+    if (error) {
+      toast.error('Erreur sauvegarde')
+    } else {
+      toast.success('Workflow sauvegarde')
+      setEditing(null)
+      fetchWorkflows()
+    }
+    setSavingEdit(false)
+  }
+
+  const handleDeleteWorkflow = async (id: string) => {
+    const { error } = await supabase.from('workflows').delete().eq('id', id)
+    if (error) toast.error('Erreur suppression')
+    else {
+      toast.success('Workflow supprime')
+      setEditing(null)
       fetchWorkflows()
     }
   }
@@ -246,8 +298,9 @@ export default function AutomationPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => toast.info('Editeur bientot disponible')}
+                        onClick={() => setEditing(w)}
                         icon={<ChevronRight className="h-3.5 w-3.5" />}
+                        data-testid={`edit-workflow-${w.id}`}
                       >
                         Editer
                       </Button>
@@ -284,6 +337,199 @@ export default function AutomationPage() {
               </Button>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Editor Modal */}
+      {editing && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={(e) => e.target === e.currentTarget && setEditing(null)}
+          data-testid="workflow-editor"
+        >
+          <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <Settings className="h-4 w-4 text-[var(--cyan)]" />
+                <h2 className="text-lg font-bold text-[var(--text-primary)]">Editeur de workflow</h2>
+              </div>
+              <button
+                onClick={() => setEditing(null)}
+                className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-white/10"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--text-secondary)]">
+                  Nom
+                </label>
+                <input
+                  type="text"
+                  value={editing.name}
+                  onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                  className="w-full rounded-xl border border-[var(--border)] bg-white/5 px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--cyan)] focus:outline-none"
+                  data-testid="editor-name-input"
+                />
+              </div>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <label className="text-sm font-medium text-[var(--text-secondary)]">
+                    Etapes ({editing.steps.length})
+                  </label>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {editing.steps.length === 0 && (
+                    <p className="rounded-xl border border-dashed border-[var(--border)] py-6 text-center text-xs text-[var(--text-muted)]">
+                      Aucune etape — ajoute-en une ci-dessous
+                    </p>
+                  )}
+                  {editing.steps.map((step, idx) => {
+                    const def = STEP_TYPES.find((t) => t.type === step.type)
+                    return (
+                      <div key={step.id} className="rounded-xl border border-[var(--border)] bg-white/5 p-3" data-testid={`step-${idx}`}>
+                        <div className="flex items-start gap-3">
+                          <span className="text-xl">{def?.icon ?? '⚙️'}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                              {def?.label ?? step.type}
+                            </p>
+                            <input
+                              type="text"
+                              value={step.label}
+                              onChange={(e) => {
+                                const next = [...editing.steps]
+                                next[idx] = { ...step, label: e.target.value }
+                                setEditing({ ...editing, steps: next })
+                              }}
+                              placeholder="Description de l'etape"
+                              className="mt-1 w-full bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none"
+                            />
+                            {step.type === 'ai' && (
+                              <textarea
+                                value={step.config.prompt ?? ''}
+                                onChange={(e) => {
+                                  const next = [...editing.steps]
+                                  next[idx] = { ...step, config: { ...step.config, prompt: e.target.value } }
+                                  setEditing({ ...editing, steps: next })
+                                }}
+                                placeholder="Prompt envoye a AKASHA"
+                                rows={2}
+                                className="mt-2 w-full resize-none rounded-lg border border-[var(--border)] bg-black/20 px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--cyan)]"
+                              />
+                            )}
+                            {step.type === 'http' && (
+                              <input
+                                type="url"
+                                value={step.config.url ?? ''}
+                                onChange={(e) => {
+                                  const next = [...editing.steps]
+                                  next[idx] = { ...step, config: { ...step.config, url: e.target.value } }
+                                  setEditing({ ...editing, steps: next })
+                                }}
+                                placeholder="https://api.exemple.com/endpoint"
+                                className="mt-2 w-full rounded-lg border border-[var(--border)] bg-black/20 px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--cyan)]"
+                              />
+                            )}
+                            {step.type === 'email' && (
+                              <input
+                                type="email"
+                                value={step.config.to ?? ''}
+                                onChange={(e) => {
+                                  const next = [...editing.steps]
+                                  next[idx] = { ...step, config: { ...step.config, to: e.target.value } }
+                                  setEditing({ ...editing, steps: next })
+                                }}
+                                placeholder="destinataire@email.com"
+                                className="mt-2 w-full rounded-lg border border-[var(--border)] bg-black/20 px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--cyan)]"
+                              />
+                            )}
+                            {step.type === 'delay' && (
+                              <input
+                                type="number"
+                                min={1}
+                                value={step.config.minutes ?? '5'}
+                                onChange={(e) => {
+                                  const next = [...editing.steps]
+                                  next[idx] = { ...step, config: { ...step.config, minutes: e.target.value } }
+                                  setEditing({ ...editing, steps: next })
+                                }}
+                                placeholder="Minutes"
+                                className="mt-2 w-32 rounded-lg border border-[var(--border)] bg-black/20 px-3 py-2 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--cyan)]"
+                              />
+                            )}
+                          </div>
+                          <button
+                            onClick={() => {
+                              const next = editing.steps.filter((_, i) => i !== idx)
+                              setEditing({ ...editing, steps: next })
+                            }}
+                            className="rounded-lg p-1.5 text-red-400 hover:bg-red-500/10"
+                            aria-label="Supprimer l'etape"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        {idx < editing.steps.length - 1 && (
+                          <div className="mt-2 flex justify-center">
+                            <ArrowDown className="h-3 w-3 text-[var(--text-muted)]" />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="mt-3">
+                  <p className="mb-2 text-xs uppercase tracking-wider text-[var(--text-muted)]">Ajouter une etape</p>
+                  <div className="flex flex-wrap gap-2">
+                    {STEP_TYPES.map((t) => (
+                      <button
+                        key={t.type}
+                        onClick={() => {
+                          const newStep: WorkflowStep = {
+                            id: `s_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                            type: t.type,
+                            label: t.label,
+                            config: {},
+                          }
+                          setEditing({ ...editing, steps: [...editing.steps, newStep] })
+                        }}
+                        className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-white/5 px-3 py-1.5 text-xs text-[var(--text-primary)] hover:border-[var(--cyan)] hover:bg-[var(--cyan)]/10"
+                        data-testid={`add-step-${t.type}`}
+                      >
+                        <span>{t.icon}</span>
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-[var(--border)] pt-4">
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => handleDeleteWorkflow(editing.id)}
+                  icon={<Trash2 className="h-3.5 w-3.5" />}
+                  data-testid="delete-workflow-btn"
+                >
+                  Supprimer
+                </Button>
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => setEditing(null)}>
+                    Annuler
+                  </Button>
+                  <Button onClick={handleSaveEdit} loading={savingEdit} data-testid="save-workflow-btn">
+                    Sauvegarder
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
         </div>
       )}
 

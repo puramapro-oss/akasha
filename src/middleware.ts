@@ -5,11 +5,15 @@ const PUBLIC_PATHS = [
   '/', '/pricing', '/how-it-works', '/ecosystem', '/status', '/changelog',
   '/privacy', '/terms', '/legal', '/offline', '/login', '/signup', '/register',
   '/onboarding', '/mentions-legales', '/politique-confidentialite', '/cgv', '/cgu',
+  '/aide', '/contact',
 ]
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true
   if (pathname.startsWith('/go/')) return true
+  if (pathname.startsWith('/p/')) return true
+  if (pathname.startsWith('/share/')) return true
+  if (pathname.startsWith('/scan/')) return true
   if (pathname.startsWith('/api/')) return true
   if (pathname.startsWith('/_next/')) return true
   if (pathname.startsWith('/auth/')) return true

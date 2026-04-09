@@ -12,19 +12,21 @@ export interface Tool {
 }
 
 export const TOOLS: Tool[] = [
-  // LIVE - Text/Chat (7)
-  { id: 'claude', name: 'Claude Sonnet 4', description: "LLM expert multi-domaines d'Anthropic", category: 'text', badge: 'LIVE', route: '/dashboard/chat?model=claude', color: '#d97757', universe: 'build', planRequired: 'free' },
-  { id: 'gpt-4o', name: 'GPT-4o', description: "Modele phare d'OpenAI", category: 'text', badge: 'LIVE', route: '/dashboard/chat?model=gpt-4o', color: '#10a37f', universe: 'build', planRequired: 'essential' },
-  { id: 'gemini', name: 'Gemini 2.5 Pro', description: 'Modele multimodal de Google', category: 'text', badge: 'LIVE', route: '/dashboard/chat?model=gemini', color: '#4285f4', universe: 'build', planRequired: 'essential' },
-  { id: 'mistral', name: 'Mistral Large', description: 'LLM francais open-weights', category: 'text', badge: 'LIVE', route: '/dashboard/chat?model=mistral', color: '#ff7000', universe: 'build', planRequired: 'essential' },
-  { id: 'deepseek', name: 'DeepSeek R2', description: 'Reasoning LLM chinois ultra-performant', category: 'text', badge: 'LIVE', route: '/dashboard/chat?model=deepseek', color: '#0ea5e9', universe: 'automate', planRequired: 'essential' },
-  { id: 'grok', name: 'Grok 3', description: 'LLM xAI avec acces temps reel', category: 'text', badge: 'LIVE', route: '/dashboard/chat?model=grok', color: '#1d9bf0', universe: 'automate', planRequired: 'pro' },
-  { id: 'llama-local', name: 'Llama 3.2 3B', description: 'IA locale hors-ligne (WebLLM)', category: 'text', badge: 'LOCAL', route: '/dashboard/chat?model=llama', color: '#6366f1', universe: 'build', planRequired: 'free' },
+  // LIVE - Text/Chat (chacun route vers une variante AKASHA reelle)
+  { id: 'akasha-sonnet', name: 'AKASHA Sonnet', description: 'LLM equilibre — qualite premium', category: 'text', badge: 'LIVE', route: '/dashboard/chat', color: '#00d4ff', universe: 'build', planRequired: 'free' },
+  { id: 'akasha-opus', name: 'AKASHA Opus', description: 'Reflexion profonde pour taches complexes', category: 'text', badge: 'LIVE', route: '/dashboard/chat', color: '#a855f7', universe: 'build', planRequired: 'pro' },
+  { id: 'akasha-haiku', name: 'AKASHA Haiku', description: 'Reponses ultra-rapides', category: 'text', badge: 'LIVE', route: '/dashboard/chat', color: '#10b981', universe: 'build', planRequired: 'free' },
+  // LINK - LLMs externes (acces direct via leur plateforme)
+  { id: 'gpt-4o', name: 'GPT-4o', description: "Modele phare d'OpenAI", category: 'text', badge: 'LINK', url: 'https://chatgpt.com', color: '#10a37f', universe: 'build', planRequired: 'free' },
+  { id: 'gemini', name: 'Gemini 2.5 Pro', description: 'Modele multimodal de Google', category: 'text', badge: 'LINK', url: 'https://gemini.google.com', color: '#4285f4', universe: 'build', planRequired: 'free' },
+  { id: 'mistral', name: 'Mistral Large', description: 'LLM francais open-weights', category: 'text', badge: 'LINK', url: 'https://chat.mistral.ai', color: '#ff7000', universe: 'build', planRequired: 'free' },
+  { id: 'deepseek', name: 'DeepSeek R2', description: 'Reasoning LLM ultra-performant', category: 'text', badge: 'LINK', url: 'https://chat.deepseek.com', color: '#0ea5e9', universe: 'automate', planRequired: 'free' },
+  { id: 'grok', name: 'Grok 3', description: 'LLM xAI avec acces temps reel', category: 'text', badge: 'LINK', url: 'https://x.ai', color: '#1d9bf0', universe: 'automate', planRequired: 'free' },
 
   // LIVE - Image (4)
   { id: 'flux', name: 'FLUX Pro', description: "Generation d'images photorealistes", category: 'image', badge: 'LIVE', route: '/dashboard/studio?tab=image&model=flux', color: '#a855f7', universe: 'create', planRequired: 'essential' },
   { id: 'dalle', name: 'DALL-E 3', description: "Generateur d'images OpenAI", category: 'image', badge: 'LIVE', route: '/dashboard/studio?tab=image&model=dalle', color: '#10a37f', universe: 'create', planRequired: 'essential' },
-  { id: 'imagen', name: 'Imagen 3', description: 'Generateur Google haute fidelite', category: 'image', badge: 'LIVE', route: '/dashboard/studio?tab=image&model=imagen', color: '#4285f4', universe: 'create', planRequired: 'pro' },
+  { id: 'pollinations', name: 'Pollinations Flux', description: 'Generation rapide haute fidelite', category: 'image', badge: 'LIVE', route: '/dashboard/studio?tab=image&model=imagen', color: '#4285f4', universe: 'create', planRequired: 'free' },
   { id: 'ideogram', name: 'Ideogram 3', description: 'Texte dans les images', category: 'image', badge: 'LINK', url: 'https://ideogram.ai', color: '#ec4899', universe: 'create', planRequired: 'free' },
 
   // LIVE - Audio (3)
@@ -73,11 +75,8 @@ export const TOOLS: Tool[] = [
   { id: 'meshy', name: '3D Gen IA', description: 'Generation 3D par Meshy', category: 'image', badge: 'LINK', url: 'https://meshy.ai', color: '#f59e0b', universe: 'create', planRequired: 'free' },
 
   // LIVE bonus
-  { id: 'dall-e-edit', name: 'DALL-E Edit', description: "Edition d'images IA", category: 'image', badge: 'LIVE', route: '/dashboard/studio?tab=image&model=dalle-edit', color: '#10a37f', universe: 'create', planRequired: 'pro' },
-  { id: 'claude-code-gen', name: 'Claude Code Gen', description: 'Generation de code expert', category: 'code', badge: 'LIVE', route: '/dashboard/studio?tab=code', color: '#d97757', universe: 'build', planRequired: 'free' },
+  { id: 'akasha-code-gen', name: 'AKASHA Code Gen', description: 'Generation de code expert', category: 'code', badge: 'LIVE', route: '/dashboard/studio?tab=code', color: '#00d4ff', universe: 'build', planRequired: 'free' },
   { id: 'tts-voices', name: 'TTS Multi-voix', description: '6+ voix OpenAI', category: 'audio', badge: 'LIVE', route: '/dashboard/studio?tab=audio&model=openai-tts', color: '#10a37f', universe: 'create', planRequired: 'free' },
-  { id: 'gemini-vision', name: 'Gemini Vision', description: "Analyse d'images par Gemini", category: 'image', badge: 'LIVE', route: '/dashboard/chat?model=gemini-vision', color: '#4285f4', universe: 'build', planRequired: 'pro' },
-  { id: 'sonar-search', name: 'Perplexity Sonar', description: 'Recherche web via API', category: 'research', badge: 'LIVE', route: '/dashboard/chat?model=sonar', color: '#20b2aa', universe: 'automate', planRequired: 'pro' },
 
   // More LINK
   { id: 'luma', name: 'Luma Dream', description: 'Video IA de Luma Labs', category: 'video', badge: 'LINK', url: 'https://lumalabs.ai', color: '#8b5cf6', universe: 'create', planRequired: 'free' },
