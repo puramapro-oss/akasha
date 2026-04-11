@@ -20,7 +20,7 @@ export default function BottomTabBar() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-[var(--border)] bg-[var(--bg-nebula)]/90 backdrop-blur-xl lg:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 flex items-stretch border-t border-[var(--border)] bg-[var(--bg-base)]/90 backdrop-blur-xl lg:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Navigation principale"
     >
@@ -32,17 +32,20 @@ export default function BottomTabBar() {
             href={href}
             data-testid={`tab-${href.split('/').pop()}`}
             className={cn(
-              'flex flex-1 flex-col items-center justify-center gap-1 py-3 text-xs font-medium transition-all duration-200',
+              'group relative flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium transition-all duration-200',
               active
                 ? 'text-[var(--cyan)]'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             )}
           >
+            {active && (
+              <span className="absolute top-0 left-1/2 h-[2px] w-8 -translate-x-1/2 rounded-full bg-[var(--cyan)]" />
+            )}
             <Icon className={cn(
-              'h-5 w-5 transition-transform duration-200',
-              active && 'drop-shadow-[0_0_6px_var(--cyan)] scale-110'
+              'h-[20px] w-[20px] transition-transform duration-200',
+              active && 'drop-shadow-[0_0_8px_var(--cyan)] scale-110'
             )} />
-            <span>{t(key)}</span>
+            <span className="truncate">{t(key)}</span>
           </Link>
         )
       })}
