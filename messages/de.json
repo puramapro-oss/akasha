@@ -58,6 +58,10 @@
     "referral": "Empfehlungsprogramm",
     "influenceur": "Influencer",
     "wallet": "Wallet",
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "api": "API-Konsole",
     "notifications": "Benachrichtigungen",
     "guide": "Anleitung",
@@ -288,6 +292,10 @@
     "shareLink": "Link teilen"
   },
   "wallet": {
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "title": "Wallet",
     "subtitle": "Verwalte deine Gewinne und führe Abhebungen durch.",
     "balance": "Saldo",

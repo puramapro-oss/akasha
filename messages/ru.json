@@ -58,6 +58,10 @@
     "referral": "Реферальная программа",
     "influenceur": "Инфлюэнсер",
     "wallet": "Кошелек",
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "api": "Консоль API",
     "notifications": "Уведомления",
     "guide": "Руководство",
@@ -288,6 +292,10 @@
     "shareLink": "Поделиться ссылкой"
   },
   "wallet": {
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "title": "Кошелек",
     "subtitle": "Управляйте своими доходами и выполняйте выводы.",
     "balance": "Баланс",

@@ -58,6 +58,10 @@
     "referral": "Indicações",
     "influenceur": "Influenciador",
     "wallet": "Carteira",
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "api": "Console API",
     "notifications": "Notificações",
     "guide": "Guia",
@@ -288,6 +292,10 @@
     "shareLink": "Compartilhar link"
   },
   "wallet": {
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "title": "Carteira",
     "subtitle": "Gerencie seus ganhos e faça saques.",
     "balance": "Saldo",

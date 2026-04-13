@@ -58,6 +58,10 @@
     "referral": "Referans",
     "influenceur": "Etkileyici",
     "wallet": "Cüzdan",
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "api": "API Konsolu",
     "notifications": "Bildirimler",
     "guide": "Rehber",
@@ -288,6 +292,10 @@
     "shareLink": "Linki paylaş"
   },
   "wallet": {
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "title": "Cüzdan",
     "subtitle": "Kazançlarını yönet ve çekim yap.",
     "balance": "Bakiye",

@@ -58,6 +58,10 @@
     "referral": "Program Referralny",
     "influenceur": "Influencer",
     "wallet": "Portfel",
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "api": "Konsola API",
     "notifications": "Powiadomienia",
     "guide": "Przewodnik",
@@ -288,6 +292,10 @@
     "shareLink": "Udostępnij link"
   },
   "wallet": {
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "title": "Portfel",
     "subtitle": "Zarządzaj swoimi zarobkami i dokonuj wypłat.",
     "balance": "Saldo",

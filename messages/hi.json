@@ -58,6 +58,10 @@
     "referral": "रेफरल",
     "influenceur": "प्रभावशाली",
     "wallet": "वॉलेट",
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "api": "API कंसोल",
     "notifications": "सूचनाएं",
     "guide": "गाइड",
@@ -288,6 +292,10 @@
     "shareLink": "लिंक साझा करें"
   },
   "wallet": {
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "title": "वॉलेट",
     "subtitle": "अपनी आय प्रबंधित करें और निकासी करें।",
     "balance": "संतुलन",

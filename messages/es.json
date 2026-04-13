@@ -58,6 +58,10 @@
     "referral": "Referidos",
     "influenceur": "Influenciador",
     "wallet": "Billetera",
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "api": "Consola API",
     "notifications": "Notificaciones",
     "guide": "Guía",
@@ -288,6 +292,10 @@
     "shareLink": "Compartir enlace"
   },
   "wallet": {
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "title": "Billetera",
     "subtitle": "Gestiona tus ganancias y realiza retiros.",
     "balance": "Saldo",

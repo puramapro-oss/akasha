@@ -58,6 +58,10 @@
     "referral": "紹介プログラム",
     "influenceur": "インフルエンサー",
     "wallet": "ウォレット",
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "api": "API コンソール",
     "notifications": "通知",
     "guide": "ガイド",
@@ -288,6 +292,10 @@
     "shareLink": "リンクをシェア"
   },
   "wallet": {
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "title": "ウォレット",
     "subtitle": "あなたの収益を管理し、出金します。",
     "balance": "残高",

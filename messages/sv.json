@@ -58,6 +58,10 @@
     "referral": "Hänvisning",
     "influenceur": "Influencer",
     "wallet": "Plånbok",
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "api": "API-konsol",
     "notifications": "Aviseringar",
     "guide": "Guide",
@@ -288,6 +292,10 @@
     "shareLink": "Dela länk"
   },
   "wallet": {
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "title": "Plånbok",
     "subtitle": "Hantera dina intäkter och gör uttag.",
     "balance": "Saldo",

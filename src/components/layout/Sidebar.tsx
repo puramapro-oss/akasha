@@ -8,12 +8,13 @@ import {
   MessageSquare, Wrench, Bot, Store, Zap, Film, Users,
   BarChart3, Gamepad2, Plug, Settings, ChevronLeft, ChevronRight,
   LogOut, Share2, Wallet, Trophy, Bell, BookOpen, Crown, User,
-  Gift, Ticket, Megaphone, Shield,
+  Gift, Ticket, Megaphone, Shield, Euro, Wind, Heart, ShoppingBag,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants'
 import LocaleSwitcher from '@/components/shared/LocaleSwitcher'
+import { getRandomQuote } from '@/hooks/useAwakening'
 
 type NavSection = {
   title: string
@@ -43,6 +44,8 @@ const SECTIONS: ReadonlyArray<NavSection> = [
       { href: '/dashboard/xp', icon: Gamepad2, key: 'xp' },
       { href: '/dashboard/achievements', icon: Trophy, key: 'achievements' },
       { href: '/dashboard/classement', icon: Crown, key: 'classement' },
+      { href: '/dashboard/breathe', icon: Wind, key: 'breathe' },
+      { href: '/dashboard/gratitude', icon: Heart, key: 'gratitude' },
     ],
   },
   {
@@ -52,6 +55,8 @@ const SECTIONS: ReadonlyArray<NavSection> = [
       { href: '/dashboard/concours', icon: Trophy, key: 'concours' },
       { href: '/dashboard/tirage', icon: Ticket, key: 'tirage' },
       { href: '/dashboard/wallet', icon: Wallet, key: 'wallet' },
+      { href: '/financer', icon: Euro, key: 'financer' },
+      { href: '/dashboard/boutique', icon: ShoppingBag, key: 'boutique' },
     ],
   },
   {
@@ -81,6 +86,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { profile, signOut } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
+  const [quote] = useState(() => getRandomQuote())
   const t = useTranslations('nav')
   const tc = useTranslations('common')
   const isSuperAdmin = profile?.email === SUPER_ADMIN_EMAIL || profile?.role === 'super_admin'
@@ -185,6 +191,14 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="border-t border-[var(--border)] p-3">
+        {!collapsed && quote && (
+          <div className="mb-3 rounded-lg bg-white/[0.02] px-3 py-2">
+            <p className="text-[11px] italic text-[var(--text-muted)] leading-relaxed">
+              &ldquo;{quote.text}&rdquo;
+            </p>
+            <p className="text-[10px] text-[var(--text-muted)] mt-1 opacity-60">— {quote.author}</p>
+          </div>
+        )}
         {!collapsed && (
           <div className="mb-2">
             <LocaleSwitcher />

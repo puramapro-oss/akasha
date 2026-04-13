@@ -58,6 +58,10 @@
     "referral": "추천",
     "influenceur": "인플루언서",
     "wallet": "지갑",
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "api": "API 콘솔",
     "notifications": "알림",
     "guide": "가이드",
@@ -288,6 +292,10 @@
     "shareLink": "링크 공유"
   },
   "wallet": {
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "title": "지갑",
     "subtitle": "수입을 관리하고 출금하세요.",
     "balance": "잔액",

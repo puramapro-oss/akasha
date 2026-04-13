@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Check, Zap, Palette, Code2, Star, ArrowLeft, Sparkles } from 'lucide-react'
+import { Check, Zap, Palette, Code2, Star, ArrowLeft, Sparkles, Euro } from 'lucide-react'
 import { toast } from 'sonner'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
@@ -147,6 +147,23 @@ export default function PricingPage() {
         <Link href="/" className="inline-flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-sm">
           <ArrowLeft className="w-4 h-4" />
           Retour
+        </Link>
+      </div>
+
+      {/* Financer banner */}
+      <div className="max-w-6xl mx-auto mb-8">
+        <Link
+          href="/financer"
+          data-testid="financer-banner"
+          className="flex items-center justify-center gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 px-6 py-4 text-sm transition-all hover:bg-emerald-400/10"
+        >
+          <Euro className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          <span className="text-emerald-400 font-medium">
+            La plupart de nos clients ne paient rien grace aux aides.
+          </span>
+          <span className="text-[var(--cyan)] font-semibold hover:underline">
+            Verifier mon eligibilite →
+          </span>
         </Link>
       </div>
 

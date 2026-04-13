@@ -303,3 +303,41 @@ export type Plan = 'free' | 'automate' | 'create' | 'build' | 'complete'
 export type PlanTier = 'essential' | 'pro' | 'max'
 export type Theme = 'dark' | 'light' | 'oled'
 export type ReferralTier = 'bronze' | 'argent' | 'or' | 'platine' | 'diamant' | 'legende'
+
+export type ProfilType = 'particulier' | 'entreprise' | 'association' | 'etudiant'
+export type SituationType = 'salarie' | 'demandeur_emploi' | 'independant' | 'auto_entrepreneur' | 'retraite' | 'rsa' | 'cej' | 'etudiant'
+export type DossierStatut = 'en_cours' | 'accepte' | 'refuse' | 'renouveler'
+
+export interface Aide {
+  id: string
+  nom: string
+  type_aide: 'particulier' | 'entreprise' | 'association'
+  profil_eligible: string[]
+  situation_eligible: string[]
+  montant_max: number
+  taux_remboursement: number
+  url_officielle: string | null
+  description: string | null
+  region: string
+  handicap_only: boolean
+  cumulable: boolean
+  renouvellement_auto: boolean
+  active: boolean
+  created_at: string
+}
+
+export interface DossierFinancement {
+  id: string
+  user_id: string
+  aide_id: string
+  statut: DossierStatut
+  profil_type: string | null
+  situation: string | null
+  departement: string | null
+  handicap: boolean
+  pdf_url: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+  aide?: Aide
+}

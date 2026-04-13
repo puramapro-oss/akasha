@@ -58,6 +58,10 @@
     "referral": "Referral",
     "influenceur": "Influencer",
     "wallet": "Portafoglio",
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "api": "Console API",
     "notifications": "Notifiche",
     "guide": "Guida",
@@ -288,6 +292,10 @@
     "shareLink": "Condividi il link"
   },
   "wallet": {
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "title": "Portafoglio",
     "subtitle": "Gestisci i tuoi guadagni ed effettua prelievi.",
     "balance": "Saldo",

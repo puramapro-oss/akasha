@@ -58,6 +58,10 @@
     "referral": "推荐",
     "influenceur": "影响力合作",
     "wallet": "钱包",
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "api": "API 控制台",
     "notifications": "通知",
     "guide": "指南",
@@ -288,6 +292,10 @@
     "shareLink": "分享链接"
   },
   "wallet": {
+    "financer": "Funding",
+    "breathe": "Breathing",
+    "gratitude": "Gratitude",
+    "boutique": "Shop",
     "title": "钱包",
     "subtitle": "管理你的收入并进行提现。",
     "balance": "余额",
